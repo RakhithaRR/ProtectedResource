@@ -39,14 +39,6 @@ public class ResourceFilter implements Filter {
             String[] params = authString.split(" ");
 
             HttpSession session = request.getSession();
-//        String access_Token;
-//        //access_Token = (String)session.getAttribute("access_token");
-//        access_Token = request.getParameter("accessToken");
-//        session.setAttribute("refresh_token",request.getParameter("refreshToken"));
-//
-//        if("token".equals(session.getAttribute("grant_type"))){
-//            access_Token = request.getParameter("accessToken");
-//        }
 
             if("Bearer".equals(params[0])){
                 String access_Token = params[1];

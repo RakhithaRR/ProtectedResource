@@ -35,47 +35,6 @@ public class ProtectedResource extends HttpServlet {
 
         out.print(result);
         out.flush();
-//        String title = "Introspection Result";
-//        String docType = "<!doctype html public \"-//w3c//dtd html 4.0 " + "transitional//en\">\n";
-
-
-//        System.out.println(scope);
-
-//        try {
-//            String[] scopes = scope.split(" ");
-//
-//
-//            out.println(
-//                    "<html>\n" +
-//                            "<head>" +
-//                            "<title>" + title + "</title>" +
-//                            "</head>\n" +
-//                            "<body>\n" +
-//                            "<h2> HELLO WORLD! OAUTH DONE!! </title>\n"
-//            );
-//
-//        if(Arrays.asList(scopes).contains("write")){
-//            out.println(
-//                    "<input name=\"write\" />\n" +
-//                    "<input type=\"button\" value=\"Submit\">"
-//
-//            );
-//        }
-//
-//            out.println(
-//                    "</body>\n" +
-//                            "</html>"
-//            );
-//        }catch(NullPointerException e){
-//            out.println(
-//                    "<html>\n" +
-//                            "<head>" +
-//                            "<title>" + title + "</title>" +
-//                            "</head>\n" +
-//                            "<body>\n" +
-//                            "<h2> HELLO WORLD! Using Basic Authentication!! </title>\n"
-//            );
-//        }
 
     }
 
