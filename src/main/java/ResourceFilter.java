@@ -12,6 +12,8 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -116,16 +118,28 @@ public class ResourceFilter implements Filter {
 //                String[] creds = credString.split(":");
 
 
-                String username = fConfig.getInitParameter("username");
-                String password = fConfig.getInitParameter("password");
+//                String username = fConfig.getInitParameter("username");
+//                String password = fConfig.getInitParameter("password");
+                try{
+                    Class.forName("oracle.jdbc.driver.OracleDriver");
 
-                if(username.equals(values[0]) && password.equals(values[1])){
-                    session.setAttribute("method","basic");
-                    chain.doFilter(request, response);
+                    Connection con = null;
+
+                    con = DriverManager.getConnection("jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=cmbpde2293)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=s2293)))",values[0],values[1]);
+
+                    if(con != null){
+                        session.setAttribute("method","basic");
+                        chain.doFilter(request, response);
+                    }
+                    else{
+                        response.setContentType("application/json");
+                        response.setStatus(401);
+                    }
                 }
-                else{
+                catch (Exception e){
                     response.setContentType("application/json");
                     response.setStatus(401);
+
                 }
             }
         }
