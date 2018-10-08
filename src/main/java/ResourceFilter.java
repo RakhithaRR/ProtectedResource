@@ -38,12 +38,13 @@ public class ResourceFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse)resp;
 
         String authString = (String)request.getHeader("Authorization");
+        String provider = request.getHeader("Provider");
         if(authString != null && !authString.isEmpty()){
             String[] params = authString.split(" ");
 
             HttpSession session = request.getSession();
 
-            if("Bearer".equals(params[0])){
+            if("Bearer".equals(params[0]) && !provider.equals("WSO2")){
                 String access_Token = params[1];
                 byte[] ba = Base64.getDecoder().decode(access_Token.split("\\.")[1]);
 
@@ -77,81 +78,86 @@ public class ResourceFilter implements Filter {
                     response.setContentType("application/json");
                     response.setStatus(401);
                 }
+
                 //build url
-//                QueryBuilder codeBuilder = new QueryBuilder();
-//                codeBuilder.append("token", access_Token);
-//
-////                String EndPoint = " https://localhost:9443/oauth2/introspect";
-//                String EndPoint = "http://localhost:8082/auth/realms/IFS/protocol/openid-connect/token/introspect";
-//                String url = EndPoint + "?";
-//                String credentials = (String)request.getHeader("ClientCredentials");
-//                codeBuilder.append("token", access_Token);
-//                String body = codeBuilder.returnQuery("");
+
+            }
+            else if("Bearer".equals(params[0]) && provider.equals("WSO2")){
+                String access_Token = params[1];
+                QueryBuilder codeBuilder = new QueryBuilder();
+                codeBuilder.append("token", access_Token);
+
+//                String EndPoint = " https://localhost:9443/oauth2/introspect";
+                String EndPoint = "https://localhost:9443/oauth2/introspect";
+                String url = EndPoint + "?";
+                String credentials = (String)request.getHeader("ClientCredentials");
+                codeBuilder.append("token", access_Token);
+                String body = codeBuilder.returnQuery("");
 
 
-//                URL object = new URL(url);
-//                HttpURLConnection con = (HttpURLConnection) object.openConnection();
-//
-//                con.setRequestMethod("POST");
-//
-//                //add request header
-//                con.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
-////                con.setRequestProperty("Authorization", "Bearer " + access_Token);
-//                con.setRequestProperty("Authorization", "Basic " + credentials);
-//
-//                con.setDoOutput(true);
-//                DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-//                wr.writeBytes(body);
-//                wr.flush();
-//                wr.close();
+                URL object = new URL(url);
+                HttpURLConnection con = (HttpURLConnection) object.openConnection();
+
+                con.setRequestMethod("POST");
+
+                //add request header
+                con.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
+//                con.setRequestProperty("Authorization", "Bearer " + access_Token);
+                con.setRequestProperty("Authorization", "Basic " + credentials);
+
+                con.setDoOutput(true);
+                DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                wr.writeBytes(body);
+                wr.flush();
+                wr.close();
 
 
-//                try{
-//                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                try{
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+                    String inputLine;
+                    StringBuffer re = new StringBuffer();
+                    while ((inputLine = in.readLine()) != null) {
+                        re.append(inputLine);
+                    }
+                    in.close();
+
+                    //Read JSON response
+                    org.json.JSONObject myResponse = new org.json.JSONObject(re.toString());
+                    System.out.println(myResponse);
+
+
+                    String active = String.valueOf(myResponse.getBoolean("active"));
+                    String scope = (String)myResponse.get("scope");
+                    session.setAttribute("scope",scope);
+                    String[] scopes = scope.split(" ");
+//                    String client = (String)myResponse.get("client_id");
 //
-//                    String inputLine;
-//                    StringBuffer re = new StringBuffer();
-//                    while ((inputLine = in.readLine()) != null) {
-//                        re.append(inputLine);
+//                    String client_id = (String)session.getAttribute("client_id");
+
+                    if("true".equals(active) && Arrays.asList(scopes).contains("read")){
+                        chain.doFilter(request,response);
+                    }
+                    else{
+                        response.setContentType("application/json");
+                        response.setStatus(401);
+                    }
+
+                }
+                catch (IOException e){
+                    System.out.println(e);
+                    if (session != null) {
+                        session.invalidate();
+                    }
+
+//                    if(!((session.getAttribute("refresh_token"))==null)) {
+//                        session.setAttribute("grant_type", "refresh_token");
+//                        response.sendRedirect("JSON");
+//                    }else{
+//                        response.sendRedirect("home?errorMessage=Access Token Invalid");
 //                    }
-//                    in.close();
-//
-//                    //Read JSON response
-//                    org.json.JSONObject myResponse = new org.json.JSONObject(re.toString());
-//                    System.out.println(myResponse);
-//
-//
-//                    String active = String.valueOf(myResponse.getBoolean("active"));
-//                    String scope = (String)myResponse.get("scope");
-//                    session.setAttribute("scope",scope);
-//                    String[] scopes = scope.split(" ");
-////                    String client = (String)myResponse.get("client_id");
-////
-////                    String client_id = (String)session.getAttribute("client_id");
-//
-//                    if("true".equals(active) && Arrays.asList(scopes).contains("read")){
-//                        chain.doFilter(request,response);
-//                    }
-//                    else{
-//                        response.setContentType("application/json");
-//                        response.setStatus(401);
-//                    }
-//
-//                }
-//                catch (IOException e){
-//                    System.out.println(e);
-//                if (session != null) {
-//                    session.invalidate();
-//                }
-//
-//                if(!((session.getAttribute("refresh_token"))==null)) {
-//                    session.setAttribute("grant_type", "refresh_token");
-//                    response.sendRedirect("JSON");
-//                }else{
-//                    response.sendRedirect("home?errorMessage=Access Token Invalid");
-//                }
 
-//                }
+                }
             }
             else{
                 String base64Credentials = authString.substring("Basic".length()).trim();
