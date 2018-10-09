@@ -90,7 +90,7 @@ public class ResourceFilter implements Filter {
 //                String EndPoint = " https://localhost:9443/oauth2/introspect";
                 String EndPoint = "https://localhost:9443/oauth2/introspect";
                 String url = EndPoint + "?";
-                String credentials = (String)request.getHeader("ClientCredentials");
+//                String credentials = (String)request.getHeader("ClientCredentials");
                 codeBuilder.append("token", access_Token);
                 String body = codeBuilder.returnQuery("");
 
@@ -102,8 +102,8 @@ public class ResourceFilter implements Filter {
 
                 //add request header
                 con.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
-//                con.setRequestProperty("Authorization", "Bearer " + access_Token);
-                con.setRequestProperty("Authorization", "Basic " + credentials);
+                con.setRequestProperty("Authorization", "Bearer " + access_Token);
+//                con.setRequestProperty("Authorization", "Basic " + credentials);
 
                 con.setDoOutput(true);
                 DataOutputStream wr = new DataOutputStream(con.getOutputStream());
