@@ -204,7 +204,7 @@ public class ResourceFilter implements Filter {
                     String exponent;
 
                     String url2 = jwks;
-                    object = new URL(url);
+                    object = new URL(url2);
                     con = (HttpURLConnection) object.openConnection();
                     con.setRequestMethod("GET");
                     in = new BufferedReader(new InputStreamReader(con.getInputStream()));
