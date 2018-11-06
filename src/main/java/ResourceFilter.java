@@ -1,3 +1,8 @@
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.json.JSONArray;
 import org.json.simple.JSONObject;
 //import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -12,10 +17,18 @@ import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.Base64;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 
 public class ResourceFilter implements Filter {
@@ -66,18 +79,68 @@ public class ResourceFilter implements Filter {
 
                 boolean active = ((iat < epoch) && (exp >epoch));
 
-                String scope = (String)jsonObj.get("scope");
-                session.setAttribute("scope",scope);
-                System.out.println("Scopes: " + scope);
-                String[] scopes = scope.split(" ");
+                String jwks = "http://localhost:8082/auth/realms/demo/protocol/openid-connect/certs";
 
-                if((active) && Arrays.asList(scopes).contains("read")) {
-                    chain.doFilter(request, response);
+                String kid;
+                String modulus;
+                String exponent;
+
+                String url = jwks;
+                URL object = null;
+
+                object = new URL(url);
+                HttpURLConnection con = (HttpURLConnection) object.openConnection();
+                con.setRequestMethod("GET");
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String inputLine;
+                StringBuffer re = new StringBuffer();
+                while ((inputLine = in.readLine()) != null) {
+                    re.append(inputLine);
                 }
-                else{
-                    response.setContentType("application/json");
-                    response.setStatus(401);
+                in.close();
+                org.json.JSONObject myResponse = new org.json.JSONObject(re.toString());
+                JSONArray myArray = myResponse.getJSONArray("keys");
+                kid = myArray.getJSONObject(0).getString("kid");
+                modulus = myArray.getJSONObject(0).getString("n");
+                exponent = myArray.getJSONObject(0).getString("e");
+
+                KeyFactory kf = null;
+                try {
+                    kf = KeyFactory.getInstance("RSA");
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
                 }
+                BigInteger mod = new BigInteger(1, org.apache.commons.codec.binary.Base64.decodeBase64(modulus));
+                BigInteger expo = new BigInteger(1, org.apache.commons.codec.binary.Base64.decodeBase64(exponent));
+                RSAPublicKey publicKey = null;
+                try {
+                    publicKey = (RSAPublicKey) kf.generatePublic(new RSAPublicKeySpec(mod, expo));
+                    Algorithm alg = Algorithm.RSA256(publicKey, null);
+                    JWTVerifier verify = JWT.require(alg)
+                            .build();
+
+                    DecodedJWT jwt = verify.verify(access_Token);
+                    System.out.println("sign verified");
+
+                    String scope = (String)jsonObj.get("scope");
+                    session.setAttribute("scope",scope);
+                    System.out.println("Scopes: " + scope);
+                    String[] scopes = scope.split(" ");
+
+                    if((active) && Arrays.asList(scopes).contains("read")) {
+                        chain.doFilter(request, response);
+                    }
+                    else{
+                        response.setContentType("application/json");
+                        response.setStatus(401);
+                    }
+
+                } catch (Exception e) {
+                    System.out.println("Signature not verified ");
+                }
+
+
+
 
                 //build url
 
@@ -134,14 +197,62 @@ public class ResourceFilter implements Filter {
 //                    String client = (String)myResponse.get("client_id");
 //
 //                    String client_id = (String)session.getAttribute("client_id");
+                    String jwks = "https://localhost:9443/oauth2/jwks";
 
-                    if("true".equals(active) && Arrays.asList(scopes).contains("read")){
-                        chain.doFilter(request,response);
+                    String kid;
+                    String modulus;
+                    String exponent;
+
+                    String url2 = jwks;
+                    object = new URL(url);
+                    con = (HttpURLConnection) object.openConnection();
+                    con.setRequestMethod("GET");
+                    in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    re = new StringBuffer();
+                    while ((inputLine = in.readLine()) != null) {
+                        re.append(inputLine);
                     }
-                    else{
-                        response.setContentType("application/json");
-                        response.setStatus(401);
+                    in.close();
+                    myResponse = new org.json.JSONObject(re.toString());
+                    JSONArray myArray = myResponse.getJSONArray("keys");
+                    kid = myArray.getJSONObject(0).getString("kid");
+                    modulus = myArray.getJSONObject(0).getString("n");
+                    exponent = myArray.getJSONObject(0).getString("e");
+
+                    KeyFactory kf = null;
+                    try {
+                        kf = KeyFactory.getInstance("RSA");
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
                     }
+                    BigInteger mod = new BigInteger(1, org.apache.commons.codec.binary.Base64.decodeBase64(modulus));
+                    BigInteger expo = new BigInteger(1, org.apache.commons.codec.binary.Base64.decodeBase64(exponent));
+                    RSAPublicKey publicKey = null;
+                    try {
+                        publicKey = (RSAPublicKey) kf.generatePublic(new RSAPublicKeySpec(mod, expo));
+                        Algorithm alg = Algorithm.RSA256(publicKey, null);
+                        JWTVerifier verify = JWT.require(alg)
+                                .build();
+
+                        DecodedJWT jwt = verify.verify(access_Token);
+                        System.out.println("sign verified");
+
+
+                        if("true".equals(active) && Arrays.asList(scopes).contains("read")){
+                            chain.doFilter(request,response);
+                        }
+                        else{
+                            response.setContentType("application/json");
+                            response.setStatus(401);
+                        }
+
+                    } catch (Exception e) {
+                        System.out.println("Signature not verified ");
+                    }
+
+
+
+
 
                 }
                 catch (IOException e){
